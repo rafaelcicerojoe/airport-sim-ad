@@ -11,4 +11,4 @@ pip install simpy
 ## Authors
 Cicero-Joe de Oliveira(@rafaelcicerojoe)
 Eduardo José Torres Rocha(@eduardotorresdev)
-Gabriel Borralho
+Gabriel Borralho(@gabrielborralho)

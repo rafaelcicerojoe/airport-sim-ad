@@ -5,15 +5,14 @@ import math
 from modules.relatorio import Relatorio
 from modules.metrica import Metricas as metrica
 
-
 parametros = {
-    'QTD_PISTA': 1,
-    'QTD_DESEMBARQUE': 2,
-    'QTD_POSTO': 1, 
+    'QTD_PISTA': 6,
+    'QTD_DESEMBARQUE': 6,
+    'QTD_POSTO': 2, 
     'TEMPO_POUSO': 5,  # em minutos
     'TEMPO_DESEMBARQUE': 20,  # em minutos
-    'TEMPO_ABASTECIMENTO': 30,  # em minutos
-    'TEMPO_ENTRE_AVIOES': [60, 90],  # em minutos
+    'TEMPO_ABASTECIMENTO': 20,  # em minutos
+    'TEMPO_ENTRE_AVIOES': [2, 5],  # em minutos
 }
 abastecidos = []
 total_avioes = []
@@ -73,13 +72,14 @@ def main():
     n_avioes = max(total_avioes)
     tempo_max = max(tempo_por_aviao)
     tempo_min = min(tempo_por_aviao)
-    tempo_med = (metrica.tempo_medio(tempo_max,tempo_min,n_abastecidos,n_avioes))
+    tempo_med = int(metrica.tempo_medio(tempo_max,tempo_min,n_abastecidos,n_avioes))
     per_hora = metrica.avioes_por_hora(tempo_med)
-
+    
+    relatorio.addMetrica('Quantidade de aviões atendidos',n_avioes)
     relatorio.addMetrica('Tempo Máximo(em minutos)',tempo_max)
     relatorio.addMetrica('Tempo Mínimo(em minutos)',tempo_min)
     relatorio.addMetrica('Tempo Médio(em minutos)', tempo_med)
-    relatorio.addMetrica('Voos por Hora(em minutos)', per_hora)
+    relatorio.addMetrica('Voos por Hora', per_hora)
     relatorio.close()
 
 

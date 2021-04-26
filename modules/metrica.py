@@ -14,4 +14,4 @@ class Metricas:
           n_non_fuel = n_avioes - n_fuel
           return round(((n_fuel*t_max)+(n_non_fuel*t_min))/n_avioes,2)
   def avioes_por_hora(tempo):
-          return int(60/tempo)
+          return round((60/tempo),2)
