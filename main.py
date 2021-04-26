@@ -1,69 +1,85 @@
 # -*- coding: utf-8 -*-
 import random
 import simpy
+import math
 from modules.relatorio import Relatorio
+from modules.metrica import Metricas as metrica
+
 
 parametros = {
     'QTD_PISTA': 1,
     'QTD_DESEMBARQUE': 2,
-    'QTD_POSTO': 1,
+    'QTD_POSTO': 1, 
     'TEMPO_POUSO': 5,  # em minutos
     'TEMPO_DESEMBARQUE': 20,  # em minutos
     'TEMPO_ABASTECIMENTO': 30,  # em minutos
-    'TEMPO_ENTRE_AVIOES': [60, 90]  # em minutos
+    'TEMPO_ENTRE_AVIOES': [60, 90],  # em minutos
 }
+abastecidos = []
+total_avioes = []
+tempo_por_aviao = []
 
-
-def criar_aviao(id, env, pista, desembarque, posto):
+def criar_aviao(id, env, pista, desembarque, posto, abastecidos,relatorio,tempo_por_aviao):
     vai_abastecer = (random.randint(0, 1) < 0.3)
     with pista.request() as req:
-        print('O avião %d iniciou o pouso' % id)
-
+        relatorio.addLog('O avião %d iniciou o pouso' % id)
         yield req
 
         yield env.timeout(parametros['TEMPO_POUSO'])
-        print('O avião %d pousou' % id)
+        relatorio.addLog('O avião %d pousou' % id)
         cron_ini = env.now
 
     with desembarque.request() as req:
         yield req
 
-        print('O avião %d iniciou o desembarque' % id)
+        relatorio.addLog('O avião %d iniciou o desembarque' % id)
 
         yield env.timeout(parametros['TEMPO_DESEMBARQUE'])
-        print('O avião %d desembarcou' % id)
+        relatorio.addLog('O avião %d desembarcou' % id)
 
     if(vai_abastecer):
         with posto.request() as req:
             yield req
 
-            print('O avião %d iniciou o abastecimento' % id)
+            relatorio.addLog('O avião %d iniciou o abastecimento' % id)
 
             yield env.timeout(parametros['TEMPO_ABASTECIMENTO'])
-            print('O avião %d abasteceu' % id)
+            abastecidos.append(1)
+            relatorio.addLog('O avião %d abasteceu' % id)
     cron_fim = env.now - cron_ini
-    print('O avião %d ficou um tempo de %d minutos' % (id, cron_fim))
+    tempo_por_aviao.append(cron_fim)
+    relatorio.addLog('O avião %d ficou um tempo de %d minutos' % (id,cron_fim))
 
-
-def aeroporto(env, pista, desembarque, posto):
+def aeroporto(env, pista, desembarque, posto, abastecidos,relatorio,total_avioes,tempo_por_aviao):
     id = 1
+    total_avioes.append(id)    
     while True:
-        env.process(criar_aviao(id, env, pista, desembarque, posto))
+        yield env.process(criar_aviao(id, env, pista, desembarque, posto, abastecidos,relatorio,tempo_por_aviao))
         yield env.timeout(random.randint(*parametros['TEMPO_ENTRE_AVIOES']))
         id += 1
-
+        total_avioes.append(id)
 
 def main():
     random.seed(58)
     relatorio = Relatorio(parametros)
-
     env = simpy.Environment()
     pista = simpy.Resource(env, parametros['QTD_PISTA'])
     desembarque = simpy.Resource(env, parametros['QTD_DESEMBARQUE'])
     posto = simpy.Resource(env, parametros['QTD_POSTO'])
-    env.process(aeroporto(env, pista, desembarque, posto))
+    env.process(aeroporto(env, pista, desembarque, posto,abastecidos,relatorio,total_avioes,tempo_por_aviao))
     env.run(until=1440)
+    
+    n_abastecidos = metrica.get_iterable(abastecidos)
+    n_avioes = max(total_avioes)
+    tempo_max = max(tempo_por_aviao)
+    tempo_min = min(tempo_por_aviao)
+    tempo_med = (metrica.tempo_medio(tempo_max,tempo_min,n_abastecidos,n_avioes))
+    per_hora = metrica.avioes_por_hora(tempo_med)
 
+    relatorio.addMetrica('Tempo Máximo(em minutos)',tempo_max)
+    relatorio.addMetrica('Tempo Mínimo(em minutos)',tempo_min)
+    relatorio.addMetrica('Tempo Médio(em minutos)', tempo_med)
+    relatorio.addMetrica('Voos por Hora(em minutos)', per_hora)
     relatorio.close()
 
 
